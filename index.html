@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WargaKu-Pintar - Digitalisasi Kependudukan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .loader { border-top-color: #059669; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Hide scrollbar for cleaner look */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-800 h-screen flex flex-col">
+
+    <nav class="bg-brand-600 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white text-brand-600 rounded-full flex items-center justify-center text-xl font-bold shadow-sm">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold leading-tight">WargaKu-Pintar</h1>
+                        <p class="text-xs text-brand-100">Portal Kader Posyandu & RT/RW</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="hidden md:flex space-x-4 mr-4 text-sm font-medium">
+                        <span class="bg-brand-700 px-3 py-1 rounded-full"><i class="fa-solid fa-shield-halved mr-1"></i> Data Terenkripsi</span>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-brand-500 border-2 border-white flex items-center justify-center">
+                        <i class="fa-solid fa-user text-xs"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- LEFT COLUMN: Camera/Upload -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- Upload Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h2 class="font-semibold text-slate-800"><i class="fa-solid fa-camera mr-2 text-brand-600"></i> Pindai Dokumen</h2>
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-md font-medium">Langkah 1</span>
+                    </div>
+                    <div class="p-5">
+                        <p class="text-sm text-slate-500 mb-4">Ambil foto KTP atau KK menggunakan kamera, atau unggah dari galeri Anda. AI akan mengekstrak datanya otomatis.</p>
+                        
+                        <div id="uploadArea" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:bg-slate-50 transition-colors cursor-pointer relative group">
+                            <input type="file" id="fileInput" accept="image/*" capture="environment" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                            
+                            <div id="uploadPlaceholder" class="flex flex-col items-center pointer-events-none">
+                                <div class="w-16 h-16 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                </div>
+                                <p class="font-medium text-slate-700">Ketuk untuk Memotret / Unggah</p>
+                                <p class="text-xs text-slate-400 mt-1">Gunakan foto yang terang dan jelas</p>
+                            </div>
+
+                            <img id="imagePreview" class="hidden w-full h-48 object-contain rounded-lg pointer-events-none" src="" alt="Preview">
+                        </div>
+
+                        <div class="mt-4 flex gap-2">
+                            <button id="extractBtn" disabled class="flex-1 bg-brand-600 text-white py-2.5 rounded-lg font-medium shadow-sm hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Ekstrak Data AI
+                            </button>
+                            <button id="resetImageBtn" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors hidden">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guidance Info -->
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
+                    <h3 class="font-semibold mb-1"><i class="fa-solid fa-circle-info mr-1"></i> Informasi Privasi</h3>
+                    <p class="text-blue-600/80">Gambar tidak disimpan secara permanen di server. Setelah diekstrak, data gambar akan langsung dihapus dari memori untuk menjaga keamanan PII warga.</p>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Extracted Data Form -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                    
+                    <!-- Loading Overlay -->
+                    <div id="loadingOverlay" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 hidden flex-col items-center justify-center">
+                        <div class="w-12 h-12 border-4 border-slate-200 loader rounded-full mb-4"></div>
+                        <h3 class="font-semibold text-slate-800 text-lg">Menganalisis Dokumen...</h3>
+                        <p class="text-slate-500 text-sm max-w-xs text-center mt-2">AI sedang membaca NIK, Nama, dan mencocokkan data semantik.</p>
+                    </div>
+
+                    <div class="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h2 class="font-semibold text-slate-800"><i class="fa-solid fa-file-lines mr-2 text-brand-600"></i> Verifikasi Data Warga</h2>
+                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-md font-medium">Langkah 2</span>
+                    </div>
+
+                    <div class="p-5">
+                        <form id="citizenForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-medium text-slate-500 mb-1">NIK (Nomor Induk Kependudukan)</label>
+                                <input type="text" id="nik" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all font-mono">
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Nama Lengkap</label>
+                                <input type="text" id="nama" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Tempat Lahir</label>
+                                <input type="text" id="tempat_lahir" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Tanggal Lahir</label>
+                                <input type="text" id="tanggal_lahir" placeholder="DD-MM-YYYY" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all">
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Alamat</label>
+                                <input type="text" id="alamat" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">RT/RW</label>
+                                <input type="text" id="rtrw" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Agama</label>
+                                <input type="text" id="agama" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all">
+                            </div>
+                        </form>
+
+                        <div class="mt-6 border-t border-slate-100 pt-5 flex justify-end gap-3">
+                            <button id="clearFormBtn" class="px-5 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors">Kosongkan Form</button>
+                            <button id="saveBtn" class="px-6 py-2 bg-slate-800 text-white rounded-lg font-medium shadow-sm hover:bg-slate-900 transition-colors flex items-center">
+                                <i class="fa-solid fa-check-double mr-2"></i> Verifikasi & Simpan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mock Database Section -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h3 class="font-semibold text-slate-800"><i class="fa-solid fa-database mr-2 text-brand-600"></i> Database Warga Terenkripsi</h3>
+                        <span class="text-xs text-slate-500">Live Simulation</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm" id="databaseTable">
+                            <thead class="bg-slate-50 text-slate-500 border-b border-slate-100">
+                                <tr>
+                                    <th class="px-4 py-3 font-medium">Nama Lengkap</th>
+                                    <th class="px-4 py-3 font-medium">NIK</th>
+                                    <th class="px-4 py-3 font-medium">Alamat</th>
+                                    <th class="px-4 py-3 font-medium">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100" id="databaseBody">
+                                <!-- Pre-populated dummy data for deduplication test -->
+                                <tr>
+                                    <td class="px-4 py-3 font-medium text-slate-800">Muhammad Rizky</td>
+                                    <td class="px-4 py-3 text-slate-500 font-mono">3174**********01</td>
+                                    <td class="px-4 py-3 text-slate-500">Jl. Mawar No 5, RT 01/02</td>
+                                    <td class="px-4 py-3"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">Terverifikasi</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Custom Modal Overlay (Replaces alerts) -->
+    <div id="customModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md transform scale-95 transition-transform duration-300" id="modalContent">
+            <div class="p-6">
+                <div class="flex items-center justify-center w-12 h-12 rounded-full mb-4 mx-auto" id="modalIconContainer">
+                    <i class="text-2xl" id="modalIcon"></i>
+                </div>
+                <h3 class="text-xl font-bold text-center text-slate-800 mb-2" id="modalTitle">Judul Modal</h3>
+                <p class="text-slate-600 text-center mb-6" id="modalMessage">Pesan modal disini.</p>
+                
+                <div class="flex gap-3 justify-center" id="modalButtons">
+                    <!-- Buttons will be injected here via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let base64ImageData = null;
+        
+        // Mock Database to simulate Semantic Deduplication
+        // We prepopulate it with "Muhammad Rizky" to demonstrate the AI duplicate detection later.
+        let database = [
+            { id: 1, nama: "Muhammad Rizky", nik: "3174123456789001", alamat: "Jl. Mawar No 5, RT 01/02", ttl: "12/05/1990" }
+        ];
+
+        // --- DOM Elements ---
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+        const extractBtn = document.getElementById('extractBtn');
+        const resetBtn = document.getElementById('resetImageBtn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const uploadArea = document.getElementById('uploadArea');
+        const saveBtn = document.getElementById('saveBtn');
+        const clearFormBtn = document.getElementById('clearFormBtn');
+
+        // Form Fields
+        const fields = ['nik', 'nama', 'tempat_lahir', 'tanggal_lahir', 'alamat', 'rtrw', 'agama'];
+
+        // --- Image Handling ---
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                // Display preview
+                imagePreview.src = event.target.result;
+                imagePreview.classList.remove('hidden');
+                uploadPlaceholder.classList.add('hidden');
+                
+                // Get pure base64 (remove data:image/jpeg;base64, prefix)
+                base64ImageData = event.target.result.split(',')[1];
+                
+                // Enable buttons
+                extractBtn.disabled = false;
+                resetBtn.classList.remove('hidden');
+                uploadArea.classList.remove('border-dashed');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        resetBtn.addEventListener('click', () => {
+            fileInput.value = '';
+            base64ImageData = null;
+            imagePreview.src = '';
+            imagePreview.classList.add('hidden');
+            uploadPlaceholder.classList.remove('hidden');
+            extractBtn.disabled = true;
+            resetBtn.classList.add('hidden');
+            uploadArea.classList.add('border-dashed');
+        });
+
+        // --- STREAMING_CHUNK:Gemini API Integration for Image Extraction ---
+        extractBtn.addEventListener('click', async () => {
+            if (!base64ImageData) return;
+
+            // Show Loading
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.classList.add('flex');
+
+            const apiKey = ""; // Left empty as requested for canvas runtime environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const promptText = `
+                Anda adalah asisten AI ekstraksi dokumen KTP/KK Indonesia.
+                Tugas Anda: Ekstrak informasi dari gambar dokumen ini secara akurat.
+                Jika ada singkatan atau typo wajar dari petugas kelurahan (misal Jln -> Jalan), perbaiki ke format standar.
+                Jika gambar sangat buram dan tidak bisa dibaca, kembalikan string kosong atau null.
+                
+                KEMBALIKAN HANYA dalam format JSON murni tanpa markdown, dengan struktur (key huruf kecil):
+                {
+                    "nik": "",
+                    "nama": "",
+                    "tempat_lahir": "",
+                    "tanggal_lahir": "",
+                    "alamat": "",
+                    "rtrw": "",
+                    "agama": ""
+                }
+            `;
+
+            const payload = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [
+                            { text: promptText },
+                            {
+                                inlineData: {
+                                    mimeType: "image/jpeg",
+                                    data: base64ImageData
+                                }
+                            }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 0.1, // Low temp for more factual extraction
+                    responseMimeType: "application/json"
+                }
+            };
+
+            try {
+                // Exponential backoff setup (simplified for prototype)
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0) {
+                    let jsonText = result.candidates[0].content.parts[0].text;
+                    // Clean markdown if API ignored the instruction
+                    jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
+                    
+                    try {
+                        const data = JSON.parse(jsonText);
+                        populateForm(data);
+                        showModal('Ekstraksi Berhasil', 'Data berhasil diekstrak. Silakan periksa dan verifikasi data di form.', 'success');
+                    } catch (e) {
+                        showModal('Gagal Membaca', 'Format balasan AI tidak sesuai. Coba foto ulang dengan lebih jelas.', 'error');
+                    }
+                } else {
+                    showModal('Gagal', 'AI tidak dapat mendeteksi teks pada gambar. Pastikan pencahayaan cukup.', 'error');
+                }
+            } catch (error) {
+                console.error("API Error:", error);
+                showModal('Koneksi Gagal', 'Tidak dapat terhubung ke server AI WargaKu-Pintar. Periksa koneksi internet.', 'error');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+            }
+        });
+
+        function populateForm(data) {
+            fields.forEach(field => {
+                const el = document.getElementById(field);
+                if (el && data[field]) {
+                    el.value = data[field];
+                    // Flash effect to show it was auto-filled
+                    el.classList.add('bg-brand-50', 'ring-2', 'ring-brand-200');
+                    setTimeout(() => el.classList.remove('bg-brand-50', 'ring-2', 'ring-brand-200'), 1500);
+                }
+            });
+        }
+
+        clearFormBtn.addEventListener('click', () => {
+            fields.forEach(field => document.getElementById(field).value = '');
+        });
+
+        // --- STREAMING_CHUNK:Semantic Deduplication Simulation Logic ---
+        saveBtn.addEventListener('click', () => {
+            const currentData = {
+                nik: document.getElementById('nik').value.trim(),
+                nama: document.getElementById('nama').value.trim(),
+                alamat: document.getElementById('alamat').value.trim()
+            };
+
+            if (!currentData.nik || !currentData.nama) {
+                showModal('Peringatan', 'NIK dan Nama Lengkap wajib diisi sebelum menyimpan.', 'warning');
+                return;
+            }
+
+            // SIMULATION: Check Semantic Deduplication locally
+            // In a real app, this would send an embedding query to the backend -> Gemini
+            let isDuplicate = false;
+            let duplicateReason = "";
+
+            for (let citizen of database) {
+                // Normalize strings for simple mock semantic check
+                const normNamaDb = citizen.nama.toLowerCase().replace(/[^a-z]/g, '');
+                const normNamaInput = currentData.nama.toLowerCase().replace(/[^a-z]/g, '');
+                
+                // Rule 1: Exact NIK match
+                if (citizen.nik === currentData.nik) {
+                    isDuplicate = true;
+                    duplicateReason = `NIK ${currentData.nik} sudah terdaftar atas nama ${citizen.nama}.`;
+                    break;
+                }
+                
+                // Rule 2: Semantic name similarity (Mocking "Muhammad Rizky" vs "M Rizki")
+                // If names share highly similar characters and address is somewhat matching
+                if (normNamaDb.includes('rizky') && normNamaInput.includes('rizki')) {
+                     isDuplicate = true;
+                     duplicateReason = `Sistem AI mendeteksi kemiripan nama. "${currentData.nama}" secara semantik mirip dengan "${citizen.nama}" di database. Apakah ini orang yang sama?`;
+                     break;
+                }
+            }
+
+            if (isDuplicate) {
+                showDuplicateModal(duplicateReason, currentData);
+            } else {
+                saveToDatabase(currentData);
+            }
+        });
+
+        function saveToDatabase(data) {
+            // Mask NIK for UI privacy (Compliance simulation)
+            const maskedNik = data.nik.length >= 16 
+                ? data.nik.substring(0,4) + '**********' + data.nik.substring(14)
+                : data.nik;
+
+            database.push(data);
+            
+            // Add row to UI table
+            const tbody = document.getElementById('databaseBody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-medium text-slate-800">${escapeHtml(data.nama)}</td>
+                <td class="px-4 py-3 text-slate-500 font-mono">${escapeHtml(maskedNik)}</td>
+                <td class="px-4 py-3 text-slate-500">${escapeHtml(data.alamat)}</td>
+                <td class="px-4 py-3"><span class="bg-brand-100 text-brand-700 px-2 py-1 rounded text-xs font-medium">Baru Disimpan</span></td>
+            `;
+            // Insert at top
+            tbody.insertBefore(tr, tbody.firstChild);
+            
+            showModal('Sukses', 'Data warga berhasil dienkripsi dan disimpan ke database.', 'success');
+            clearFormBtn.click();
+            resetBtn.click();
+        }
+
+        // --- STREAMING_CHUNK:Custom Modal Implementation (Replacing Alerts) ---
+        function showModal(title, message, type = 'info') {
+            const modal = document.getElementById('customModal');
+            const modalContent = document.getElementById('modalContent');
+            const titleEl = document.getElementById('modalTitle');
+            const msgEl = document.getElementById('modalMessage');
+            const iconContainer = document.getElementById('modalIconContainer');
+            const icon = document.getElementById('modalIcon');
+            const btns = document.getElementById('modalButtons');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            
+            // Reset classes
+            iconContainer.className = 'flex items-center justify-center w-14 h-14 rounded-full mb-4 mx-auto';
+            icon.className = 'text-2xl';
+
+            if (type === 'success') {
+                iconContainer.classList.add('bg-green-100', 'text-green-600');
+                icon.classList.add('fa-solid', 'fa-check');
+            } else if (type === 'error') {
+                iconContainer.classList.add('bg-red-100', 'text-red-600');
+                icon.classList.add('fa-solid', 'fa-triangle-exclamation');
+            } else if (type === 'warning') {
+                iconContainer.classList.add('bg-amber-100', 'text-amber-600');
+                icon.classList.add('fa-solid', 'fa-circle-exclamation');
+            } else {
+                iconContainer.classList.add('bg-blue-100', 'text-blue-600');
+                icon.classList.add('fa-solid', 'fa-info');
+            }
+
+            btns.innerHTML = `<button onclick="closeModal()" class="px-6 py-2 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-900 w-full transition-colors">Tutup</button>`;
+
+            // Show animation
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function showDuplicateModal(reason, data) {
+            const modal = document.getElementById('customModal');
+            const modalContent = document.getElementById('modalContent');
+            const titleEl = document.getElementById('modalTitle');
+            const msgEl = document.getElementById('modalMessage');
+            const iconContainer = document.getElementById('modalIconContainer');
+            const icon = document.getElementById('modalIcon');
+            const btns = document.getElementById('modalButtons');
+
+            titleEl.textContent = 'Deteksi Duplikasi (AI Semantic)';
+            msgEl.textContent = reason;
+            
+            iconContainer.className = 'flex items-center justify-center w-14 h-14 rounded-full mb-4 mx-auto bg-amber-100 text-amber-600';
+            icon.className = 'text-2xl fa-solid fa-users-viewfinder';
+
+            // Custom buttons for the duplicate action
+            btns.innerHTML = `
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 flex-1 transition-colors">Batal</button>
+                <button id="forceSaveBtn" class="px-4 py-2 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 flex-1 transition-colors">Simpan Tetap</button>
+            `;
+
+            document.getElementById('forceSaveBtn').addEventListener('click', () => {
+                closeModal();
+                saveToDatabase(data);
+            });
+
+            // Show animation
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('customModal');
+            const modalContent = document.getElementById('modalContent');
+            
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); // match duration
+        }
+
+        function escapeHtml(unsafe) {
+            return (unsafe || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+    </script>
+</body>
+</html>
